@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Reddit Saved</title>
+    <style>
+        body {
+            background-color: black;
+            color: rgb(215, 218, 220);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #app {
+            max-width: 800px;
+            margin: auto;
+        }
+        
+        a {
+            color: rgb(215, 218, 220);
+        }
+
+        .post {
+            border: 1px solid rgb(52, 53, 54);
+            background-color: rgba(26, 26, 27, 0.8);
+            
+            display: flex;
+            margin: 5px;
+            padding: 5px;
+        }
+
+        .post .thumbnail img {
+            vertical-align: bottom;
+            width: 140px;
+        }
+
+        .post .thumbnail video {
+            vertical-align: bottom;
+            width: 140px;
+        }
+
+        .post .infos {
+            margin-left: 10px;
+            padding: 5px 0;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .post p, .post h3 {
+            margin: 0;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <h1>Reddit Saved Content</h1>
+            <hr>
+            <span>Type: </span>
+            <select v-model="filter.category">
+                <option value="all">Everything</option>
+                <option value="text">Text only / comment</option>
+                <option value="media">With media</option>
+            </select>
+            <span>Subreddit: </span>
+            <select v-model="filter.sub">
+                <option value="all">Everything</option>
+                <option v-for="sub in subsList" v-bind:value="sub">{{ sub }}</option>
+            </select>
+            <span>Search: </span>
+            <input type="text" v-model="filter.search" />
+        </div>
+        <hr>
+        <div>{{ filteredContent.length }} elements</div>
+        <div v-for="post in filteredContent" class="post">
+            <div class="thumbnail" v-if="post.thumbnail && post.thumbnail.startsWith('http')">
+                <img v-bind:src="post.thumbnail"/>
+            </div>
+            <div class="thumbnail" v-else-if="post.media">
+                <img v-if="!post.media.filename.endsWith('mp4')" v-bind:src="post.media.localPath"/>
+                <video v-else v-bind:src="post.media.localPath"></video>
+            </div>
+            <div class="infos">
+                <h3>{{ post.title }}</h3>
+                <div>
+                    <a v-bind:href="`http://reddit.com${post.permalink}`" target="_blank" alt="Permalink">{{ post.permalink }}</a>
+                </div>
+                <div v-if="post.media">
+                    Open media: <a v-bind:href="post.media.localPath" target="_blank">locally</a> or <a v-bind:href="post.media.url" target="_blank">online</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="summary.js"></script>
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                content: content,
+                filter: {
+                    category: "all",
+                    sub: "all",
+                    search: ""
+                }
+            },
+            computed: {
+                subsList: function () {
+                    return this.content.map(p => p.subreddit).filter((value, index, self) => self.indexOf(value) === index)
+                },
+                filteredContent: function () {
+                    return this.content.filter(p => {
+                        if (this.filter.category !== "all")
+                        {
+                            if (this.filter.category === "text" && p.media !== undefined)
+                                return false
+                            if (this.filter.category === "media" && p.media === undefined)
+                                return false
+                        }
+
+                        if (this.filter.sub !== "all" && p.subreddit !== this.filter.sub)
+                            return false
+
+                        if (this.filter.search !== "" && p.title.indexOf(this.filter.search) == -1)
+                            return false
+                        
+                        return true
+                    })
+                }
+            }
+        })
+    </script>
+</body>
+</html>

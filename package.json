@@ -1,0 +1,57 @@
+{
+  "name": "RedditToolbox",
+  "description": "Utilities for reddit users",
+  "version": "0.1.0",
+  "author": "NoNiMad @NoNiMad",
+  "bin": {
+    "RedditToolbox": "./bin/run"
+  },
+  "bugs": "https://github.com/NoNiMad/RedditToolbox/issues",
+  "dependencies": {
+    "@oclif/command": "^1.6.1",
+    "@oclif/config": "^1.15.1",
+    "@oclif/plugin-help": "^3.0.1",
+    "cli-progress": "^3.8.2",
+    "conf": "^6.2.4",
+    "inquirer": "^7.1.0",
+    "ora": "^4.0.4",
+    "p-map": "^4.0.0",
+    "request": "^2.88.2",
+    "sanitize-filename": "^1.6.3",
+    "snoowrap": "^1.21.0"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1.22.2",
+    "globby": "^10.0.2",
+    "rimraf": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/bin",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json",
+    "/src"
+  ],
+  "homepage": "https://github.com/NoNiMad/RedditToolbox",
+  "keywords": [
+    "oclif"
+  ],
+  "license": "GPL-3.0",
+  "main": "src/index.js",
+  "oclif": {
+    "commands": "./src/commands",
+    "bin": "RedditToolbox",
+    "plugins": [
+      "@oclif/plugin-help"
+    ]
+  },
+  "repository": "NoNiMad/RedditToolbox",
+  "scripts": {
+    "postpack": "rimraf oclif.manifest.json",
+    "prepack": "oclif-dev manifest && oclif-dev readme",
+    "test": "echo NO TESTS",
+    "version": "oclif-dev readme && git add README.md"
+  }
+}

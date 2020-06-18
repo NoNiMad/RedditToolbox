@@ -61,7 +61,7 @@ async function findMediaInSubmission(submission)
                     .on("error", err => reject(err))
                     .on("response", function(response) {
                         const contentType = response.headers["content-type"]
-                        if (contentType.startsWith("image") || contentType.startsWith("video"))
+                        if (contentType !== undefined && (contentType.startsWith("image") || contentType.startsWith("video")))
                         {
                             resolve({
                                 url: submission.url,

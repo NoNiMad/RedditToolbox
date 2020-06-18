@@ -1,3 +1,6 @@
+const config = require("./config")
+const inquirer = require("inquirer")
+
 function allSettled(promises)
 {
     if (Promise.allSettled)
@@ -21,8 +24,6 @@ async function promptPasswordIfNeeded(password)
     if (password !== undefined)
         return password    
 
-    const config = require("./config")
-    const inquirer = require("inquirer")
     return (await inquirer.prompt([{
             type: "password",
             name: "password",

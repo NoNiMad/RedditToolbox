@@ -1,10 +1,10 @@
+const snoowrap = require("snoowrap")
+const config = require("../lib/config")
+
 module.exports = async function (password)
 {
     try
     {
-        const snoowrap = require("snoowrap")
-        const config = require("../lib/config")
-
         const r = new snoowrap({
             userAgent: "desktop:RedditToolbox:v0.0.1 (by /u/NoNiMad)",
             clientId: config.get("clientId"),

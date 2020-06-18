@@ -1,14 +1,15 @@
 const fs = require("fs")
+const path = require("path")
 
 const request = require("request")
 const pMap = require("p-map")
 const cliProgress = require("cli-progress")
 
-async function getFileSize(file)
+async function getContentLength(url)
 {
     return new Promise((resolve, reject) => {
         request
-            .head(file.url)
+            .head(url)
             .on("error", err => reject(err))
             .on("response", function(response) {
                 resolve(parseInt(response.headers["content-length"]))
@@ -18,15 +19,18 @@ async function getFileSize(file)
 
 async function download(multibar, file)
 {
-    if (fs.existsSync(file.absolutePath))
-        return Promise.reject("Already downloaded")
+    const filename = path.basename(file.path)
+    const folder = path.dirname(file.path)
 
-    if (!fs.existsSync(file.folder))
-        fs.mkdirSync(file.folder, { recursive: true })
+    if (fs.existsSync(file.path))
+        return Promise.reject("File already exists")
 
-    const fileSize = await getFileSize(file)
-    const bar = multibar.create(100, 0, { file: file.filename, size: `${parseFloat(fileSize / 1000000).toFixed(2)} MB` })
-    const writeStream = fs.createWriteStream(file.absolutePath)
+    if (!fs.existsSync(folder))
+        fs.mkdirSync(folder, { recursive: true })
+
+    const fileSize = await getContentLength(file.url)
+    const bar = multibar.create(100, 0, { file: filename, size: `${parseFloat(fileSize / 1000000).toFixed(2)} MB` })
+    const writeStream = fs.createWriteStream(file.path)
 
     return new Promise((resolve, reject) => {
         let progress = 0
@@ -46,6 +50,11 @@ async function download(multibar, file)
     })
 }
 
+// files is an array of:
+// {
+//     url
+//     path
+// }
 async function downloadFiles(files)
 {
     const multibar = new cliProgress.MultiBar({

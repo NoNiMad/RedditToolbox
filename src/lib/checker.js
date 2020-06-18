@@ -5,16 +5,16 @@ const utils = require("./utils")
 
 function getLocalFileSize(file)
 {
-    let stats = fs.statSync(path.join(file.folder, file.filename))
+    let stats = fs.statSync(file.path)
     return stats["size"]
 }
 
 async function getFileSize(file)
 {
     return new Promise((resolve, reject) => {
-        if (!fs.existsSync(file.absolutePath))
+        if (!fs.existsSync(file.path))
         {
-            reject(new Error(`"${file.filename}" isn't downloaded`))
+            reject(new Error(`"${file.path}" doesn't exist`))
         }
         else
         {
@@ -46,7 +46,6 @@ async function checkFiles(files)
             let expectedSize = fileSize.value
             if (localSize !== expectedSize)
             {
-                console.log(`${file.filename}: Wrong size! Deleting...`)
                 return {
                     success: true,
                     needDownload: true

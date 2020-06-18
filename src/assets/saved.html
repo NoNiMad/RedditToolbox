@@ -80,8 +80,8 @@
                 <img v-bind:src="post.thumbnail"/>
             </div>
             <div class="thumbnail" v-else-if="post.media">
-                <img v-if="!post.media.filename.endsWith('mp4')" v-bind:src="post.media.localPath"/>
-                <video v-else v-bind:src="post.media.localPath"></video>
+                <video v-if="post.media.isVideo" v-bind:src="post.media.path"></video>
+                <img v-else v-bind:src="post.media.path"/>
             </div>
             <div class="infos">
                 <h3>{{ post.title }}</h3>
@@ -89,7 +89,7 @@
                     <a v-bind:href="`http://reddit.com${post.permalink}`" target="_blank" alt="Permalink">{{ post.permalink }}</a>
                 </div>
                 <div v-if="post.media">
-                    Open media: <a v-bind:href="post.media.localPath" target="_blank">locally</a> or <a v-bind:href="post.media.url" target="_blank">online</a>
+                    Open media: <a v-bind:href="post.media.path" target="_blank">locally</a> or <a v-bind:href="post.media.url" target="_blank">online</a>
                 </div>
             </div>
         </div>
@@ -108,7 +108,7 @@
             },
             computed: {
                 subsList: function () {
-                    return this.content.map(p => p.subreddit).filter((value, index, self) => self.indexOf(value) === index)
+                    return this.content.map(p => p.subreddit).filter((value, index, self) => self.indexOf(value) === index).sort()
                 },
                 filteredContent: function () {
                     return this.content.filter(p => {

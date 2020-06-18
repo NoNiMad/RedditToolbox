@@ -1,70 +1,16 @@
 const { Command } = require("@oclif/command")
 
-const fs = require("fs")
-const path = require("path")
-
-function getSubredditName(element)
-{
-    return typeof(element.subreddit) === "string" ? element.subreddit : element.subreddit.display_name
-}
-
-function getMediaInfoFromPost(post)
-{
-    if (post.media !== undefined && post.media !== null)
-    {
-        if (post.media.reddit_video !== undefined)
-        {
-            return {
-                url: post.media.reddit_video.fallback_url.replace("?source=fallback", ""),
-                extension: "mp4"
-            }
-        }
-        else if (post.media.type === "gfycat.com")
-        {
-            return {
-                url: post.media.oembed.thumbnail_url.replace("size_restricted.gif", "mobile.mp4"),
-                extension: "mp4"
-            }
-        }
-    }
-    else if (post.url !== undefined && post.url.startsWith("https://i.redd.it/"))
-    {
-        return {
-            url: post.url,
-            extension: post.url.substring(post.url.length - 3)
-        }
-    }
-
-    return null
-}
-
-function toDownloaderStruct(baseFolder, mediaInfo)
-{
-    const sanitize = require("sanitize-filename")
-
-    let safeTitle = sanitize(mediaInfo.title)
-    if (safeTitle.length > 50)
-        safeTitle = safeTitle.substring(0, 50)
-
-    let safeSubredditName = sanitize(mediaInfo.subreddit)
-    let filename = `${safeTitle}_${mediaInfo.id}.${mediaInfo.extension}`
-
-    return {
-        url: mediaInfo.url,
-        filename: filename,
-        folder: path.join(baseFolder, safeSubredditName),
-        localPath: path.join(safeSubredditName, filename),
-        absolutePath: path.join(baseFolder, safeSubredditName, filename),
-    }
-}
-
 class SavedCommand extends Command
 {
     async run()
     {
+        const fs = require("fs")
+        const path = require("path")
         const ora = require("ora")
+        const sanitize = require("sanitize-filename")
         const config = require("../lib/config")
         const utils = require("../lib/utils")
+        const media = require("../lib/media")
 
         const spinner = ora()
         const { flags } = this.parse(SavedCommand)
@@ -132,57 +78,78 @@ class SavedCommand extends Command
         spinner.start("Parsing data...")
 
         let mediaCount = 0
-        let summary = content
-            .map(s => {
-                let summaryElement = {
-                    id: s.id,
-                    permalink: s.permalink,
-                    subreddit: getSubredditName(s),
-                    title: s.title || s.link_title,
-                    thumbnail: s.thumbnail
-                }
+        const summary = await Promise.all(content.map(async s => {
+            let summaryElement = {
+                id: s.id,
+                permalink: s.permalink,
+                subreddit: typeof(s.subreddit) === "string" ? s.subreddit : s.subreddit.display_name,
+                title: s.title || s.link_title,
+                thumbnail: s.thumbnail
+            }
 
-                let mediaInfo = getMediaInfoFromPost(s)
+            try
+            {
+                const mediaInfo = await media.findMediaInSubmission(s)
                 if (mediaInfo != null)
                 {
-                    summaryElement.media = toDownloaderStruct(
-                        baseFolder,
-                        {
-                            ...summaryElement,
-                            ...mediaInfo
-                        })
+                    const safeTitle = sanitize(summaryElement.title).substring(0, 50)
+                    const safeSubredditName = sanitize(summaryElement.subreddit)
+                    const filename = `${safeTitle}_${summaryElement.id}.${mediaInfo.extension}`
+                
+                    summaryElement.media = {
+                        url: mediaInfo.url,
+                        isVideo: mediaInfo.isVideo,
+                        path: path.join(safeSubredditName, filename),
+                    }
                     mediaCount++
                 }
+            }
+            catch (error)
+            {
+                /* 99% of the time, the HEAD request failed, which could be the case when:
+                    - File is gone
+                    - SSL certificates are invalid (if url is https)
+                    - Connexion issues (like a timeout)
+                   We're just ignoring them
+                */
+            }
 
-                return summaryElement
-            })
+            return summaryElement
+        }))
 
         spinner.info(`Data parsed: ${summary.length} elements, ${mediaCount} medias`)
 
         // Save files to disk //
-        spinner.start("Writing content to disk...")
+        {
+            spinner.start("Writing content to disk...")
 
-        fs.mkdirSync(baseFolder, { recursive: true })
+            fs.mkdirSync(baseFolder, { recursive: true })
 
-        fs.writeFileSync(
-            path.join(baseFolder, "index.html"),
-            fs.readFileSync(path.join(__dirname, "../assets/saved.html")))
+            fs.writeFileSync(
+                path.join(baseFolder, "index.html"),
+                fs.readFileSync(path.join(__dirname, "../assets/saved.html")))
 
-        // Write the data we received from reddit, to enable further parsing later
-        fs.writeFileSync(contentFile, JSON.stringify(content))
+            // Write the data we received from reddit, to enable further parsing later
+            fs.writeFileSync(contentFile, JSON.stringify(content))
 
-        // Write the summary used by the HTML page (with the variable declaration)
-        fs.writeFileSync(summaryFile, `let content = ${JSON.stringify(summary)}`)
-        
-        spinner.succeed("Content successfully saved")
+            // Write the summary used by the HTML page (with the variable declaration)
+            fs.writeFileSync(summaryFile, `let content = ${JSON.stringify(summary)}`)
+            
+            spinner.succeed("Content successfully saved")
+        }
 
         // Checking existing files //
         spinner.start("Checking existing media files...")
         let medias = summary
             .filter(el => el.media != undefined)
-            .map(el => el.media)
+            .map(el => {
+                return {
+                    url: el.media.url,
+                    path: path.join(baseFolder, el.media.path)
+                }
+            })
 
-        let existingMedias = medias.filter(media => fs.existsSync(media.absolutePath))
+        let existingMedias = medias.filter(media => fs.existsSync(media.path))
         if (existingMedias.length > 0)
         {
             spinner.text = `${existingMedias.length} media files being checked...`
@@ -200,27 +167,27 @@ class SavedCommand extends Command
                     {
                         if (result.needDownload)
                         {
-                            fs.unlinkSync(existingMedia.absolutePath)
+                            fs.unlinkSync(existingMedia.path)
                             deletedCount++
                         }
                         else
                         {
-                            medias.splice(medias.findIndex(m => m.absolutePath === existingMedia.absolutePath), 1)
+                            medias.splice(medias.findIndex(m => m.path === existingMedia.path), 1)
                             validCount++
                         }
                     }
                     else
                     {
-                        medias.splice(medias.findIndex(m => m.absolutePath === existingMedia.absolutePath), 1)
-                        errors.push(`${existingMedia.filename}: ${result.error}`)
+                        medias.splice(medias.findIndex(m => m.path === existingMedia.path), 1)
+                        errors.push(`${path.basename(existingMedia.path)}: ${result.error}`)
                     }
                 })
             
             if (errors.length != 0)
             {
-                spinner.warn(`Checking existing files: ${validCount} valid, ${deletedCount} invalid and ${errors.length} errors`)
+                spinner.error(`Checking existing files: ${validCount} valid, ${deletedCount} invalid and ${errors.length} errors`)
                 errors.forEach(err => this.error(err))
-                this.error("Errored files won't be re-downloaded.")
+                spinner.error("Files that caused an error won't be re-downloaded")
             }
             else
             {

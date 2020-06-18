@@ -1,8 +1,8 @@
 {
-  "name": "RedditToolbox",
+  "name": "reddittoolbox",
   "description": "Utilities for reddit users",
-  "version": "0.1.0",
-  "author": "NoNiMad @NoNiMad",
+  "version": "0.2.0",
+  "author": "NoNiMad",
   "bin": {
     "RedditToolbox": "./bin/run"
   },

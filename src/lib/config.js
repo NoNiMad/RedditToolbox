@@ -2,15 +2,9 @@ const Conf = require("conf")
 
 const schema = {
 	folder: {
-        type: 'string'
-    },
-    clientId: {
         type: "string"
     },
-    clientSecret: {
-        type: "string"
-    },
-    username: {
+    refreshToken: {
         type: "string"
     }
 }

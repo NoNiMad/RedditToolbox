@@ -9,22 +9,22 @@ class SavedCommand extends Command
         const ora = require("ora")
         const sanitize = require("sanitize-filename")
         const config = require("../lib/config")
-        const utils = require("../lib/utils")
         const media = require("../lib/media")
 
         const spinner = ora()
-        const { flags } = this.parse(SavedCommand)
-
-        let password = await utils.promptPasswordIfNeeded(flags.password)
 
         // Reddit API //
         spinner.start("Initializing Reddit API")
 
-        let r = await require("../lib/reddit")(password)
-        if (r == null)
+        let r
+        try
+        {
+            r = await require("../lib/reddit").authenticated()
+        }
+        catch (error)
         {
             spinner.fail()
-            this.error("Are you sure your configuration and your credentials are correct?")
+            this.error("Failed to initialize the connection to the Reddit API.")
         }
 
         spinner.succeed()
@@ -217,9 +217,5 @@ class SavedCommand extends Command
 }
 
 SavedCommand.description = `Backups saved content`
-
-SavedCommand.flags = {
-    password: require("../flags/password")()
-}
 
 module.exports = SavedCommand

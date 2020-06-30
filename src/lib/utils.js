@@ -19,19 +19,6 @@ function allSettled(promises)
     )
 }
 
-async function promptPasswordIfNeeded(password)
-{
-    if (password !== undefined)
-        return password    
-
-    return (await inquirer.prompt([{
-            type: "password",
-            name: "password",
-            message: `Password for ${config.get("username")}`
-        }])).password
-}
-
 module.exports = {
-    allSettled,
-    promptPasswordIfNeeded
+    allSettled
 }

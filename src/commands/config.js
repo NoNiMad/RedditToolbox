@@ -9,20 +9,8 @@ class ConfigCommand extends Command
 
         let fields = [
             {
-                name: "username",
-                message: "Reddit Username"
-            },
-            {
                 name: "folder",
                 message: "Local storage folder"
-            },
-            {
-                name: "clientId",
-                message: "Reddit API - Client ID",
-            },
-            {
-                name: "clientSecret",
-                message: "Reddit API - Client Secret",
             }
         ]
 

@@ -6,23 +6,24 @@ class GetCommand extends Command
     {
         const fs = require("fs")
         const ora = require("ora")
-        const utils = require("../lib/utils")
         const media = require("../lib/media")
         const downloader = require("../lib/downloader")
 
         const spinner = ora()
         const { args, flags } = this.parse(GetCommand)
 
-        let password = await utils.promptPasswordIfNeeded(flags.password)
-
         // Reddit API //
         spinner.start("Initializing Reddit API")
 
-        const r = await require("../lib/reddit")(password)
-        if (r == null)
+        let r
+        try
+        {
+            r = await require("../lib/reddit").authenticatedWithFallback()
+        }
+        catch (error)
         {
             spinner.fail()
-            this.error("Are you sure your configuration and your credentials are correct?")
+            this.error("Failed to initialize the connection to the Reddit API.")
         }
 
         spinner.succeed()
@@ -67,7 +68,6 @@ GetCommand.args = [
 ]
 
 GetCommand.flags = {
-    password: require("../flags/password")(),
     "download-media": flags.boolean({ char: "d" })
 }
 

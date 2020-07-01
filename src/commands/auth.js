@@ -12,8 +12,8 @@ class AuthCommand extends Command
 
         try
         {
-            spinner.start("Authenticating your account...")
-            const code = await auth.getCode()
+            spinner.info("Authenticating your account...")
+            const code = await auth.getCode(url => this.log(`If your browser did not open, go to this link manually: ${url}`))
             spinner.succeed("Authentication successful!")
             
             spinner.start("Getting your token...")

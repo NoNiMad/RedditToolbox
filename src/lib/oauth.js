@@ -37,7 +37,7 @@ const possibleErrors = {
     }
 }
 
-async function getCode()
+async function getCode(log)
 {
     return new Promise((resolve, reject) =>
     {
@@ -99,7 +99,9 @@ async function getCode()
         })
         server.listen(constants.oauth.port)
 
-        require('open')(getAuthenticationUrl(state))
+        const authUrl = getAuthenticationUrl(state)
+        log(authUrl)
+        require('open')(authUrl)
 
         function getAuthenticationUrl(state)
         {

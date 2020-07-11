@@ -1,6 +1,6 @@
 {
   "name": "reddittoolbox",
-  "description": "Utilities for reddit users",
+  "description": "A set of tools to backup your Reddit content offline, in a organized, readable and searchable manner",
   "version": "0.3.0",
   "author": "NoNiMad",
   "bin": {
@@ -14,6 +14,7 @@
     "cli-progress": "^3.8.2",
     "conf": "^6.2.4",
     "inquirer": "^7.1.0",
+    "mime-types": "^2.1.27",
     "open": "^7.0.4",
     "ora": "^4.0.4",
     "p-map": "^4.0.0",

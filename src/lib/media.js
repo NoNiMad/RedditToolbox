@@ -1,8 +1,34 @@
 const url = require("url")
 const path = require("path")
 const request = require("request")
+const mime = require("mime-types")
 
 const videoExtensions = [ "mp4" ]
+
+async function getMediaAtUrl(mediaUrl)
+{
+    return new Promise((resolve, reject) => {
+        request
+            .head(mediaUrl)
+            .on("error", err => reject(err))
+            .on("response", function(response) {
+                const contentType = response.headers["content-type"]
+                if (contentType !== undefined && (contentType.startsWith("image") || contentType.startsWith("video")))
+                {
+                    const extension = mime.extension(contentType)
+                    resolve({
+                        url: mediaUrl,
+                        isVideo: videoExtensions.includes(extension),
+                        extension: extension
+                    })
+                }
+                else
+                {
+                    resolve(null)
+                }
+            })
+    })
+}
 
 async function findMediaInSubmission(submission)
 {
@@ -33,49 +59,19 @@ async function findMediaInSubmission(submission)
     }
     else if (submission.url !== undefined)
     {
-        const parsedUrl = url.parse(submission.url)
-        const extension = path.extname(parsedUrl.pathname).substring(1)
-
-        if (submission.url.startsWith("https://i.redd.it/"))
+        let media = await getMediaAtUrl(submission.url)
+        if (media != null)
+            return media
+        
+        if (submission.preview.images.length > 0)
         {
-            return {
-                url: submission.url,
-                isVideo: videoExtensions.includes(extension),
-                extension: extension
-            }
+            let firstImageWithSource = submission.preview.images.find(image => image.source !== undefined)
+            if (firstImageWithSource === undefined)
+                return null
+            
+            return await getMediaAtUrl(firstImageWithSource.source.url)
         }
-        else if (submission.url.startsWith("https://i.imgur.com/"))
-        {
-            const imageId = path.basename(parsedUrl.pathname, `.${extension}`)
-            return {
-                url: `https://imgur.com/download/${imageId}`,
-                isVideo: videoExtensions.includes(extension),
-                extension: extension
-            }
-        }
-        else
-        {
-            return new Promise((resolve, reject) => {
-                request
-                    .head(submission.url)
-                    .on("error", err => reject(err))
-                    .on("response", function(response) {
-                        const contentType = response.headers["content-type"]
-                        if (contentType !== undefined && (contentType.startsWith("image") || contentType.startsWith("video")))
-                        {
-                            resolve({
-                                url: submission.url,
-                                isVideo: videoExtensions.includes(extension),
-                                extension: extension
-                            })
-                        }
-                        else
-                        {
-                            resolve(null)
-                        }
-                    })
-            })
-        }
+        return null
     }
 
     return null

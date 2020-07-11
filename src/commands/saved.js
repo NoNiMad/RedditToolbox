@@ -1,4 +1,4 @@
-const { Command } = require("@oclif/command")
+const { Command, flags } = require("@oclif/command")
 
 class SavedCommand extends Command
 {
@@ -12,6 +12,7 @@ class SavedCommand extends Command
         const media = require("../lib/media")
 
         const spinner = ora()
+        const { flags } = this.parse(SavedCommand)
 
         // Reddit API //
         spinner.start("Initializing Reddit API")
@@ -138,8 +139,6 @@ class SavedCommand extends Command
             spinner.succeed("Content successfully saved")
         }
 
-        // Checking existing files //
-        spinner.start("Checking existing media files...")
         let medias = summary
             .filter(el => el.media != undefined)
             .map(el => {
@@ -148,55 +147,61 @@ class SavedCommand extends Command
                     path: path.join(baseFolder, el.media.path)
                 }
             })
-
-        let existingMedias = medias.filter(media => fs.existsSync(media.path))
-        if (existingMedias.length > 0)
+        
+        // Checking existing files //
+        if (!flags["no-check"])
         {
-            spinner.text = `${existingMedias.length} media files being checked...`
-            
-            const checker = require("../lib/checker")
-            let results = await checker(existingMedias)
+            spinner.start("Checking existing media files...")
 
-            let validCount = 0
-            let deletedCount = 0
-            let errors = []
-            results
-                .forEach((result, i) => {
-                    let existingMedia = existingMedias[i]
-                    if (result.success)
-                    {
-                        if (result.needDownload)
+            let existingMedias = medias.filter(media => fs.existsSync(media.path))
+            if (existingMedias.length > 0)
+            {
+                spinner.text = `${existingMedias.length} media files being checked...`
+                
+                const checker = require("../lib/checker")
+                let results = await checker(existingMedias)
+
+                let validCount = 0
+                let deletedCount = 0
+                let errors = []
+                results
+                    .forEach((result, i) => {
+                        let existingMedia = existingMedias[i]
+                        if (result.success)
                         {
-                            fs.unlinkSync(existingMedia.path)
-                            deletedCount++
+                            if (result.needDownload)
+                            {
+                                fs.unlinkSync(existingMedia.path)
+                                deletedCount++
+                            }
+                            else
+                            {
+                                medias.splice(medias.findIndex(m => m.path === existingMedia.path), 1)
+                                validCount++
+                            }
                         }
                         else
                         {
                             medias.splice(medias.findIndex(m => m.path === existingMedia.path), 1)
-                            validCount++
+                            errors.push(`${path.basename(existingMedia.path)}: ${result.error}`)
                         }
-                    }
-                    else
-                    {
-                        medias.splice(medias.findIndex(m => m.path === existingMedia.path), 1)
-                        errors.push(`${path.basename(existingMedia.path)}: ${result.error}`)
-                    }
-                })
-            
-            if (errors.length != 0)
-            {
-                spinner.error(`Checking existing files: ${validCount} valid, ${deletedCount} invalid and ${errors.length} errors`)
-                errors.forEach(err => this.error(err))
-                spinner.error("Files that caused an error won't be re-downloaded")
+                    })
+                
+                if (errors.length != 0)
+                {
+                    spinner.error(`Checking existing files: ${validCount} valid, ${deletedCount} invalid and ${errors.length} errors`)
+                    errors.forEach(err => this.error(err))
+                    spinner.error("Files that caused an error won't be re-downloaded")
+                }
+                else
+                {
+                    spinner.info(`Checking existing files: ${validCount} valid and ${deletedCount} invalid`)
+                }
             }
             else
             {
-                spinner.info(`Checking existing files: ${validCount} valid and ${deletedCount} invalid`)
+                spinner.info("No files found locally")
             }
-        }
-        else
-        {
-            spinner.info("No files found locally")
         }
 
         // Download medias //
@@ -217,5 +222,9 @@ class SavedCommand extends Command
 }
 
 SavedCommand.description = `Backups saved content`
+
+SavedCommand.flags = {
+    "no-check": flags.boolean()
+}
 
 module.exports = SavedCommand

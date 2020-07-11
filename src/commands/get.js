@@ -31,7 +31,15 @@ class GetCommand extends Command
         // Get the content from reddit
         spinner.start("Getting the submission...")
 
-        const submission = await (await r.getSubmission(args.id)).fetch()
+        let submission
+        try
+        {
+            submission = await r.getSubmission(args.id).fetch()
+        } catch (error)
+        {
+            spinner.fail()
+            this.error(`Failed to get submission with id "${args.id}": ${error.message}`)
+        }
 
         if (flags["download-media"])
         {

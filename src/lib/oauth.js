@@ -111,7 +111,7 @@ async function getCode(log)
                 state,
                 redirect_uri: constants.oauth.redirectUrl,
                 duration: "permanent",
-                scope: "history identity",
+                scope: constants.oauth.scopes,
             })
         }
     })

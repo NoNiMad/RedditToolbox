@@ -15,7 +15,10 @@ async function getMediaAtUrl(mediaUrl)
                 const contentType = response.headers["content-type"]
                 if (contentType !== undefined && (contentType.startsWith("image") || contentType.startsWith("video")))
                 {
-                    const extension = mime.extension(contentType)
+                    let extension = mime.extension(contentType)
+                    if (extension === "jpeg")
+                        extension = "jpg"
+
                     resolve({
                         url: mediaUrl,
                         isVideo: videoExtensions.includes(extension),

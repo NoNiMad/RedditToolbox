@@ -35,6 +35,13 @@ async function getMediaAtUrl(mediaUrl)
 
 async function findMediaInSubmission(submission)
 {
+    if (submission.crosspost_parent_list !== undefined && submission.crosspost_parent_list.length > 0)
+    {
+        const crosspostMediaInfo = await findMediaInSubmission(submission.crosspost_parent_list[0])
+        if (crosspostMediaInfo !== null)
+            return crosspostMediaInfo
+    }
+
     if (submission.media !== undefined && submission.media !== null)
     {
         if (submission.media.reddit_video !== undefined)
@@ -54,13 +61,8 @@ async function findMediaInSubmission(submission)
             }
         }
     }
-    else if (submission.crosspost_parent_list !== undefined && submission.crosspost_parent_list.length > 0)
-    {
-        const crosspostMediaInfo = await findMediaInSubmission(submission.crosspost_parent_list[0])
-        if (crosspostMediaInfo !== null)
-            return crosspostMediaInfo
-    }
-    else if (submission.url !== undefined)
+
+    if (submission.url !== undefined)
     {
         let media = await getMediaAtUrl(submission.url)
         if (media != null)

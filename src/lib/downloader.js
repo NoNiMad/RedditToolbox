@@ -63,7 +63,13 @@ async function downloadFiles(files)
         hideCursor: true
     }, cliProgress.Presets.shades_grey)
     
-    await pMap(files, file => download(multibar, file), { concurrency: 5 } )
+    try
+    {
+        await pMap(files, file => download(multibar, file), { concurrency: 5 } )
+    } catch (error)
+    {
+        console.error(error)
+    }
     
     multibar.stop()
 }

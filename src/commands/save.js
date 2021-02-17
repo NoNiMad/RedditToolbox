@@ -1,7 +1,9 @@
 const { Command, flags } = require("@oclif/command")
 
-class SavedCommand extends Command
+class SaveCommand extends Command
 {
+    static alises = ['saved']
+
     async run()
     {
         const fs = require("fs")
@@ -12,7 +14,7 @@ class SavedCommand extends Command
         const media = require("../lib/media")
 
         const spinner = ora()
-        const { flags } = this.parse(SavedCommand)
+        const { flags } = this.parse(SaveCommand)
 
         // Reddit API //
         spinner.start("Initializing Reddit API")
@@ -85,24 +87,30 @@ class SavedCommand extends Command
                 permalink: s.permalink,
                 subreddit: typeof(s.subreddit) === "string" ? s.subreddit : s.subreddit.display_name,
                 title: s.title || s.link_title,
-                thumbnail: s.thumbnail
+                thumbnail: s.thumbnail,
+                medias: []
             }
 
             try
             {
-                const mediaInfo = await media.findMediaInSubmission(s)
-                if (mediaInfo != null)
+                const medias = await media.findMediasInSubmission(s)
+                if (medias.length > 0)
                 {
                     const safeTitle = sanitize(summaryElement.title).substring(0, 50)
                     const safeSubredditName = sanitize(summaryElement.subreddit)
-                    const filename = `${safeTitle}_${summaryElement.id}.${mediaInfo.extension}`
-                
-                    summaryElement.media = {
-                        url: mediaInfo.url,
-                        isVideo: mediaInfo.isVideo,
-                        path: path.join(safeSubredditName, filename),
-                    }
-                    mediaCount++
+                    const hasMultipleMedias = medias.length > 1
+
+                    medias.forEach((mediaInfo, i) => {
+                        const indexIndicator = hasMultipleMedias ? `_${i}` : ""
+                        const filename = `${safeTitle}_${summaryElement.id}${indexIndicator}.${mediaInfo.extension}`
+                    
+                        summaryElement.medias.push({
+                            url: mediaInfo.url,
+                            isVideo: mediaInfo.isVideo,
+                            path: path.join(safeSubredditName, filename),
+                        })
+                        mediaCount++
+                    })
                 }
             }
             catch (error)
@@ -140,13 +148,15 @@ class SavedCommand extends Command
         }
 
         let medias = summary
-            .filter(el => el.media != undefined)
             .map(el => {
-                return {
-                    url: el.media.url,
-                    path: path.join(baseFolder, el.media.path)
-                }
+                return el.medias.map(media => {
+                    return {
+                        url: media.url,
+                        path: path.join(baseFolder, media.path)
+                    }
+                })
             })
+            .flat()
         
         // Checking existing files //
         if (!flags["no-check"])
@@ -221,10 +231,10 @@ class SavedCommand extends Command
     }
 }
 
-SavedCommand.description = `Backups saved content`
+SaveCommand.description = `Backups saved content`
 
-SavedCommand.flags = {
+SaveCommand.flags = {
     "no-check": flags.boolean()
 }
 
-module.exports = SavedCommand
+module.exports = SaveCommand

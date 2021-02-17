@@ -43,19 +43,21 @@ class GetCommand extends Command
 
         if (flags["download-media"])
         {
-            const mediaFound = await media.findMediaInSubmission(submission)
-            if (mediaFound !== null)
+            const medias = await media.findMediasInSubmission(submission)
+            if (medias.length)
             {
-                spinner.info("Downloading the media...")
-                await downloader([{
-                    url: mediaFound.url,
-                    path: `${args.id}_media.${mediaFound.extension}`
-                }])
-                spinner.succeed("Media downloaded!")
+                spinner.info(`Downloading ${medias.length} media(s)...`)
+                await downloader(medias.map((media, i) => {
+                    return {
+                        url: media.url,
+                        path: `${args.id}_media_${i}.${media.extension}`
+                    }
+                }))
+                spinner.succeed("Media(s) downloaded!")
             }
             else
             {
-                spinner.warn("No media found")
+                spinner.warn("No media found.")
             }
         }
 

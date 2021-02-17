@@ -4,6 +4,9 @@ const request = require("request")
 const mime = require("mime-types")
 
 const videoExtensions = [ "mp4" ]
+const extensionRenaming = {
+    "jpeg": "jpg"
+}
 
 async function getMediaAtUrl(mediaUrl)
 {
@@ -16,8 +19,11 @@ async function getMediaAtUrl(mediaUrl)
                 if (contentType !== undefined && (contentType.startsWith("image") || contentType.startsWith("video")))
                 {
                     let extension = mime.extension(contentType)
-                    if (extension === "jpeg")
-                        extension = "jpg"
+                    if (extension === false)
+                        resolve(null)
+
+                    if (extensionRenaming[extension] !== undefined)
+                        extension = extensionRenaming[extension]
 
                     resolve({
                         url: mediaUrl,
@@ -33,12 +39,12 @@ async function getMediaAtUrl(mediaUrl)
     })
 }
 
-async function findMediaInSubmission(submission)
+async function findMediasInSubmission(submission)
 {
     if (submission.crosspost_parent_list !== undefined && submission.crosspost_parent_list.length > 0)
     {
-        const crosspostMediaInfo = await findMediaInSubmission(submission.crosspost_parent_list[0])
-        if (crosspostMediaInfo !== null)
+        const crosspostMediaInfo = await findMediasInSubmission(submission.crosspost_parent_list[0])
+        if (crosspostMediaInfo.length > 0)
             return crosspostMediaInfo
     }
 
@@ -46,42 +52,63 @@ async function findMediaInSubmission(submission)
     {
         if (submission.media.reddit_video !== undefined)
         {
-            return {
+            return [{
                 url: submission.media.reddit_video.fallback_url.replace("?source=fallback", ""),
                 isVideo: true,
                 extension: "mp4"
-            }
+            }]
         }
         else if (submission.media.type === "gfycat.com")
         {
-            return {
+            return [{
                 url: submission.media.oembed.thumbnail_url.replace("size_restricted.gif", "mobile.mp4"),
                 isVideo: true,
                 extension: "mp4"
-            }
+            }]
         }
     }
 
     if (submission.url !== undefined)
     {
+        if (submission.url.startsWith("https://www.reddit.com/gallery/"))
+        {
+            return Object.values(submission.media_metadata)
+                .filter(mediaMetadata => mediaMetadata.status == "valid")
+                .map(mediaMetadata => {
+                    let extension = mime.extension(mediaMetadata.m)
+                    if (extension === false)
+                        return null
+
+                    if (extensionRenaming[extension] !== undefined)
+                        extension = extensionRenaming[extension]
+
+                    return {
+                        url: mediaMetadata.s.u,
+                        isVideo: videoExtensions.includes(extension),
+                        extension: extension
+                    }
+                })
+                .filter(mediaInfo => mediaInfo !== null)
+        }
+
         let media = await getMediaAtUrl(submission.url)
-        if (media != null)
-            return media
+        if (media !== null)
+            return [media]
         
         if (submission.preview.images.length > 0)
         {
             let firstImageWithSource = submission.preview.images.find(image => image.source !== undefined)
             if (firstImageWithSource === undefined)
-                return null
+                return []
             
-            return await getMediaAtUrl(firstImageWithSource.source.url)
+            return [await getMediaAtUrl(firstImageWithSource.source.url)]
         }
-        return null
+        return []
     }
 
-    return null
+    return []
 }
 
 module.exports = {
-    findMediaInSubmission
+    findMediasInSubmission
 }

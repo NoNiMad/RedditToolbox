@@ -52,7 +52,7 @@ async function download(multibar, file)
 
 // files is an array of:
 // {
-//     url
+//     url,
 //     path
 // }
 async function downloadFiles(files)
@@ -63,13 +63,7 @@ async function downloadFiles(files)
         hideCursor: true
     }, cliProgress.Presets.shades_grey)
     
-    try
-    {
-        await pMap(files, file => download(multibar, file), { concurrency: 5 } )
-    } catch (error)
-    {
-        console.error(error)
-    }
+    await pMap(files, file => download(multibar, file), { concurrency: 5 } )
     
     multibar.stop()
 }

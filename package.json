@@ -1,7 +1,7 @@
 {
   "name": "reddittoolbox",
   "description": "A set of tools to backup your Reddit content offline, in a organized, readable and searchable manner",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "author": "NoNiMad",
   "bin": {
     "RedditToolbox": "./bin/run"

@@ -79,17 +79,17 @@
             <div class="thumbnail" v-if="post.thumbnail && post.thumbnail.startsWith('http')">
                 <img v-bind:src="post.thumbnail"/>
             </div>
-            <div class="thumbnail" v-else-if="post.media">
-                <video v-if="post.media.isVideo" v-bind:src="post.media.path"></video>
-                <img v-else v-bind:src="post.media.path"/>
+            <div class="thumbnail" v-else-if="post.medias.length > 0">
+                <video v-if="post.medias[0].isVideo" v-bind:src="post.medias[0].path"></video>
+                <img v-else v-bind:src="post.medias[0].path"/>
             </div>
             <div class="infos">
                 <h3>{{ post.title }}</h3>
                 <div>
                     <a v-bind:href="`http://reddit.com${post.permalink}`" target="_blank" alt="Permalink">{{ post.permalink }}</a>
                 </div>
-                <div v-if="post.media">
-                    Open media: <a v-bind:href="post.media.path" target="_blank">locally</a> or <a v-bind:href="post.media.url" target="_blank">online</a>
+                <div v-if="post.medias.length > 0">
+                    Open media: <a v-bind:href="post.medias[0].path" target="_blank">locally</a> or <a v-bind:href="post.medias[0].url" target="_blank">online</a>
                 </div>
             </div>
         </div>
@@ -114,9 +114,9 @@
                     return this.content.filter(p => {
                         if (this.filter.category !== "all")
                         {
-                            if (this.filter.category === "text" && p.media !== undefined)
+                            if (this.filter.category === "text" && p.medias !== undefined && p.medias.length > 0)
                                 return false
-                            if (this.filter.category === "media" && p.media === undefined)
+                            if (this.filter.category === "media" && (p.medias === undefined || p.medias.length === 0))
                                 return false
                         }
 

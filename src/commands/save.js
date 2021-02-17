@@ -220,7 +220,14 @@ class SaveCommand extends Command
             spinner.info(`Downloading ${medias.length} files...`)
 
             const downloader = require("../lib/downloader")
-            await downloader(medias)
+            try
+            {
+                await downloader(medias)
+            }
+            catch (error)
+            {
+                spinner.error(error)
+            }
         }
         else
         {

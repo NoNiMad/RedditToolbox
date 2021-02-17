@@ -44,7 +44,7 @@ class GetCommand extends Command
         if (flags["download-media"])
         {
             const medias = await media.findMediasInSubmission(submission)
-            if (medias.length)
+            if (medias.length > 0)
             {
                 spinner.info(`Downloading ${medias.length} media(s)...`)
                 await downloader(medias.map((media, i) => {

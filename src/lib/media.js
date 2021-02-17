@@ -4,8 +4,26 @@ const request = require("request")
 const mime = require("mime-types")
 
 const videoExtensions = [ "mp4" ]
+const mimeRenaming = {
+    "image/jpg": "image/jpeg"
+}
 const extensionRenaming = {
     "jpeg": "jpg"
+}
+
+function getExtension(mimeType)
+{
+    if (mimeRenaming[mimeType])
+        mimeType = mimeRenaming[mimeType]
+
+    let extension = mime.extension(mimeType)
+    if (extension === false)
+        return false
+
+    if (extensionRenaming[extension] !== undefined)
+        extension = extensionRenaming[extension]
+
+    return extension
 }
 
 async function getMediaAtUrl(mediaUrl)
@@ -18,12 +36,9 @@ async function getMediaAtUrl(mediaUrl)
                 const contentType = response.headers["content-type"]
                 if (contentType !== undefined && (contentType.startsWith("image") || contentType.startsWith("video")))
                 {
-                    let extension = mime.extension(contentType)
+                    const extension = getExtension(contentType)
                     if (extension === false)
                         resolve(null)
-
-                    if (extensionRenaming[extension] !== undefined)
-                        extension = extensionRenaming[extension]
 
                     resolve({
                         url: mediaUrl,
@@ -68,29 +83,26 @@ async function findMediasInSubmission(submission)
         }
     }
 
+    if (submission.gallery_data !== undefined && submission.gallery_data !== null)
+    {
+        return Object.values(submission.media_metadata)
+            .filter(mediaMetadata => mediaMetadata.status == "valid")
+            .map(mediaMetadata => {
+                const extension = getExtension(mediaMetadata.m)
+                if (extension === false)
+                    resolve(null)
+
+                return {
+                    url: mediaMetadata.s.u,
+                    isVideo: videoExtensions.includes(extension),
+                    extension: extension
+                }
+            })
+            .filter(mediaInfo => mediaInfo !== null)
+    }
+
     if (submission.url !== undefined)
     {
-        if (submission.url.startsWith("https://www.reddit.com/gallery/"))
-        {
-            return Object.values(submission.media_metadata)
-                .filter(mediaMetadata => mediaMetadata.status == "valid")
-                .map(mediaMetadata => {
-                    let extension = mime.extension(mediaMetadata.m)
-                    if (extension === false)
-                        return null
-
-                    if (extensionRenaming[extension] !== undefined)
-                        extension = extensionRenaming[extension]
-
-                    return {
-                        url: mediaMetadata.s.u,
-                        isVideo: videoExtensions.includes(extension),
-                        extension: extension
-                    }
-                })
-                .filter(mediaInfo => mediaInfo !== null)
-        }
-
         let media = await getMediaAtUrl(submission.url)
         if (media !== null)
             return [media]
